@@ -1,7 +1,10 @@
 (ns om-next-datagrid-example.core
   (:require [goog.dom :as gdom]
             [om.next :as om :refer-macros [defui]]
-            [om.dom :as dom]))
+            [om.dom :as dom]
+            [om-bootstrap.table :refer [table]]
+            [om-bootstrap.pagination :as pg]
+            [clojure.walk :refer [stringify-keys]]))
 
 (enable-console-print!)
 
@@ -23,8 +26,6 @@
 ;; Parsing
 
 (defn get-people [state key start end]
-  (println "get-people key: " key)
-  (println "get-people state: " @state)
   (let [st @state]
     (-> (into [] (map #(get-in st %)) (get st key))
         (subvec start end))))
@@ -50,28 +51,49 @@
        Object
        (render [this]
                (let [{:keys [first last email] :as props} (om/props this)]
-                 (dom/li nil
-                         (dom/label nil (str first ", " last " (" email ")"))))))
+                 (dom/tr nil
+                         [(dom/td nil first)
+                          (dom/td nil last)
+                          (dom/td nil email)]))))
 
 (def person (om/factory Person {:keyfn :first}))
+
+(defn get-headers [data]
+  (keys (stringify-keys (first data))))
+
+(defn page-previous [this]
+  )
+
+(defn page-next [this]
+  )
 
 (defui ListView
        static om/IQueryParams
        (params [this]
-               {:start 0
-                :end 3
+               {:start  0
+                :end    3
                 :person (om/get-query Person)})
        static om/IQuery
        (query [this]
               '[({:list ?person} {:start ?start :end ?end})])
        Object
        (render [this]
-               (println "Render ListView")
                (let [{:keys [list] :as props} (om/props this)]
                  (apply dom/div nil
                         [(dom/h2 nil "Datagrid example")
-                         (apply dom/ul nil
-                                (map person list))]))))
+                         (table {:striped? true :bordered? true :condensed? true :hover? true}
+                                (dom/thead nil
+                                           (apply dom/tr nil
+                                                  (map #(dom/th nil %) (get-headers list))))
+                                (dom/tbody nil
+                                           (map person list)))
+                         (pg/pagination {}
+                                        ; @todo
+                                        (pg/previous {:on-click #(page-previous this)})
+                                        (pg/page {:active? true} "1")
+                                        (pg/page {} "2")
+                                        (pg/page {} "3")
+                                        (pg/next {:on-click #(page-next this)}))]))))
 
 (def reconciler
   (om/reconciler
