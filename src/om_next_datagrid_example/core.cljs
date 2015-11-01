@@ -22,17 +22,18 @@
 ;; -----------------------------------------------------------------------------
 ;; Parsing
 
-(defn get-people [state key]
+(defn get-people [state key start end]
+  (println "get-people key: " key)
+  (println "get-people state: " @state)
   (let [st @state]
-    (into [] (map #(get-in st %)) (get st key))))
+    (-> (into [] (map #(get-in st %)) (get st key))
+        (subvec start end))))
 
 
 (defmulti read om/dispatch)
 
-(defmethod read :list [{:keys [state] :as env} key params]
-  (cljs.pprint/pprint key)
-  (cljs.pprint/pprint state)
-  {:value (get-people state key)})
+(defmethod read :list [{:keys [state] :as env} key {:keys [start end]}]
+  {:value (get-people state key start end)})
 
 
 ;; -----------------------------------------------------------------------------
@@ -44,25 +45,29 @@
               [:person/by-first first])
        static om/IQuery
        (query [this]
-              '[:first :last :email])
+              '[:first :last :email]
+              )
        Object
        (render [this]
-               ;(println "Render Person" (-> this om/props :first))
                (let [{:keys [first last email] :as props} (om/props this)]
                  (dom/li nil
-                         (dom/label nil (str first ", " last " (" email ")" ))))))
+                         (dom/label nil (str first ", " last " (" email ")"))))))
 
 (def person (om/factory Person {:keyfn :first}))
 
 (defui ListView
+       static om/IQueryParams
+       (params [this]
+               {:start 0
+                :end 3
+                :person (om/get-query Person)})
        static om/IQuery
        (query [this]
-              (let [subquery (om/get-query Person)]
-                `[{:list ~subquery}]))
+              '[({:list ?person} {:start ?start :end ?end})])
        Object
        (render [this]
                (println "Render ListView")
-               (let [{:keys [list]} (om/props this)]
+               (let [{:keys [list] :as props} (om/props this)]
                  (apply dom/div nil
                         [(dom/h2 nil "Datagrid example")
                          (apply dom/ul nil
