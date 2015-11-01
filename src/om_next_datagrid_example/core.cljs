@@ -8,6 +8,8 @@
 
 (enable-console-print!)
 
+(def page-size 3)
+
 (def init-data
   {:list [{:first "Ben" :last "Bitdiddle" :email "benb@example.com"}
           {:first "Alyssa" :last "Hacker" :email "aphacker@example.com"}
@@ -62,16 +64,20 @@
   (keys (stringify-keys (first data))))
 
 (defn page-previous [this]
-  )
+  (om/set-params! this (-> (om/get-params this)
+                           (update :start - page-size)
+                           (update :end - page-size))))
 
 (defn page-next [this]
-  )
+  (om/set-params! this (-> (om/get-params this)
+                           (update :start + page-size)
+                           (update :end + page-size))))
 
 (defui ListView
        static om/IQueryParams
        (params [this]
                {:start  0
-                :end    3
+                :end    page-size
                 :person (om/get-query Person)})
        static om/IQuery
        (query [this]
